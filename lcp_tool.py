@@ -3,7 +3,7 @@ from arcpy import env
 from arcpy.sa import *
 import random
 
-# Create working space
+# Create working space and setup ArcGIS tool environment
 arcpy.env.workspace = "ENTER_WORKSPACE_PATH_HERE"
 arcpy.env.overwriteOutput = True
 
@@ -15,7 +15,6 @@ residentialPoint = arcpy.GetParameter(3) # SHP of the residential locations (poi
 samplePercent = float(arcpy.GetParameter(4)) # INT of the sampling percentage desired
 
 def main():
-    # combinedShp = str(arcpy.GetParameter(4))
 
     # Separate the zone from one shapefile to multiple file and add the path to list
     boundaryList = []
@@ -72,14 +71,19 @@ def main():
     for boundary in boundaryList:
         arcpy.management.Delete(boundary)
 
-def ConvertRoadsShapefileToCostRaster(roadSHP):
-    """Convert to raster for reclassify if the input is shapefile instead of raster directly.
+def ConvertRoadsShpToCostRaster(roadSHP):
+    """Coverts road lines shp to cost surface raster according to pretermined safety scores 
+    (primarily based on vehicle speeds) for later LCP analysis.
+
+    Ultimately this function was unused in the final school walkability analysis as the data 
+    was manually cleaned and converted using pre-made tools in ArcGIS Pro, but I've left it here
+    in case it's functionality is useful for another project in the future.
 
     Parameters:
-    roadSHP (shapefile): Description of arg1
+    roadSHP (shapefile): Shapefile of the roads and paths of the community (vector lines).
 
     Returns:
-    raster
+    raster: Cost surface raster of the roads and paths.
     """
     roadRaster = arcpy.conversion.PolylineToRaster(roadSHP, "SPEED",
                                                 arcpy.env.workspace + "roadRaster.tif",
@@ -96,7 +100,7 @@ def ConvertRoadsShapefileToCostRaster(roadSHP):
 
     speedList = sorted(speedList)
 
-    # Set value for reclassify
+    # Set values for reclassification
     reclass = []
     value = 2
     for speed in speedList:
