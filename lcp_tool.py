@@ -119,7 +119,7 @@ def SelectSampleByPercent(layer, percent) -> None:
     """Select residential points by percentage at random for quicker process,
 
     Parameters:
-    layer (int): Description of arg1
+    layer (int): Vector layer of points
     percent (int): Percentage of points to be randomly selected
 
     Returns:
