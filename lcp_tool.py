@@ -16,7 +16,7 @@ samplePercent = float(arcpy.GetParameter(4)) # INT of the sampling percentage de
 
 def main():
 
-    # Separate the zone from one shapefile to multiple file and add the path to list
+    # Separate the various school zones from the original shp and add the respectives paths to a list
     boundaryList = []
     rows = arcpy.GetCount_management(boundary)
     arcpy.AddMessage(str(rows[0]) + " boundaries")
@@ -29,10 +29,13 @@ def main():
         boundaryList.append(polyOut)
 
     arcpy.AddMessage("initialized boundarylist")
-    c = 1  # represent number of zone
+    zoneNumber = 1  # Used to representive individual zones and create their unique LCP paths
+
+    # Iterate through and complete the LCP analysis for each school zone
     for zone in boundaryList:
-        arcpy.AddMessage("boundary: " + zone)
-        # Select the elements that completely within the zone
+        arcpy.AddMessage("boundary: " + zone) # Inform user of current zone being processed.
+
+        # Select the elements (residential, schools) that are completely within the zone
         schoolPoint = arcpy.management.SelectLayerByLocation(schoolPoint,
                                                             "COMPLETELY_WITHIN",
                                                             zone,
@@ -46,28 +49,26 @@ def main():
                                                                 "NEW_SELECTION",
                                                                 "NOT_INVERT")
 
-        """Random select residential,change the second varialbe to make different
-        percentage
-        """
+        # Randomly select residential locations from the shp in order to efficiently process 
+        # extremely large datasets, which could theoretically be infinite (monte-carlo).
         SelectSampleByPercent(residentialPoint, samplePercent)
 
-        """Send message to let user know how may sample selected
-
-        """
+        # Inform user of monte-carlo selections.
         arcpy.AddMessage("Selected " + arcpy.GetCount_management(schoolPoint)[
             0] + " SchoolPoint")
         arcpy.AddMessage("Selected " + arcpy.GetCount_management(residentialPoint)[
             0] + " residentialPoints")
 
-        # Make a string to reclassify
+        # Run least cost path analysis based on monte-carlo selection for the current zone.
         arcpy.management.CopyRaster(roadReclassify, "reclass.tif")
         arcpy.intelligence.LeastCostPath("reclass.tif", residentialPoint,
                                         schoolPoint,
-                                        "LCP.gdb/boundary" + str(c) +
+                                        "LCP.gdb/boundary" + str(zoneNumber) +
                                         "_best_path")
-        c += 1
+        
+        zoneNumber += 1 # Move on to next zone and continue
 
-    # Delete the boundaries file that are not needed
+    # Delete boundaries files that are no longer needed
     for boundary in boundaryList:
         arcpy.management.Delete(boundary)
 
@@ -110,9 +111,9 @@ def ConvertRoadsShpToCostRaster(roadSHP):
             reclass.append([int(speed), value])
             value += 1
 
-    roadReclassify = arcpy.ddd.Reclassify(arcpy.env.workspace + "roadRaster.tif","SPEED", RemapValue(reclass), 
+    roadReclassifyRaster = arcpy.ddd.Reclassify(arcpy.env.workspace + "roadRaster.tif","SPEED", RemapValue(reclass), 
                                           arcpy.env.workspace + "toolbox.gdb/Reclass_road1", "NODATA")
-    return roadReclassify
+    return roadReclassifyRaster
 
 def SelectSampleByPercent(layer, percent) -> None:
     """Select residential points by percentage at random for quicker process,
